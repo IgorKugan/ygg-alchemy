@@ -16,10 +16,10 @@ const capacity = (id, weight = { current: 100, max: 1000 }, profile = {}) =>
 
 test('a compra dos ingredientes limita o lote quando eles pesam mais que o produto', () => {
   const result = capacity('cellular');
-  assert.equal(result.ingredientsPerAttempt, 140);
+  assert.equal(result.ingredientsPerAttempt, 141);
   assert.equal(result.outputPerAttempt, 5);
   assert.equal(result.attempts, 5);
-  assert.equal(result.purchaseWeight, 800);
+  assert.equal(result.purchaseWeight, 805);
   assert.equal(result.finalWeight, 125);
 });
 
@@ -27,15 +27,31 @@ test('reserva espaço para o produto completo, inclusive quando a chance configu
   const result = capacity('cellular', undefined, { yield: 50, success: 25 });
   assert.equal(result.attempts, 3);
   assert.equal(result.items, 150);
-  assert.equal(result.purchaseWeight, 520);
+  assert.equal(result.purchaseWeight, 523);
   assert.equal(result.finalWeight, 850);
 });
 
 test('aceita exatamente 90% e não arredonda peso extra para baixo', () => {
-  assert.equal(capacity('cellular', { current: 200, max: 1000 }).attempts, 5);
-  assert.equal(capacity('cellular', { current: 200.1, max: 1000 }).attempts, 4);
+  assert.equal(capacity('cellular', { current: 195, max: 1000 }).attempts, 5);
+  assert.equal(capacity('cellular', { current: 195.1, max: 1000 }).attempts, 4);
   assert.equal(capacity('cellular', { current: 900, max: 1000 }).attempts, 0);
   assert.equal(capacity('cellular', { current: 950, max: 1000 }).attempts, 0);
+});
+
+test('todos os crafts consomem exatamente uma vasilha por preparo, inclusive lotes avançados', () => {
+  for (const r of core.recipes) {
+    assert.equal(r.ingredients.bowl, 1, r.name);
+    const result = core.calculate(r, { quantity: 3, mode: 'attempts', yield: 200, success: 100 });
+    assert.equal(result.materials.bowl, 3, r.name);
+  }
+});
+
+test('inclui as vasilhas no limite do exemplo informado pelo usuário', () => {
+  const result = capacity('cellular', { current: 281, max: 18930 });
+  assert.equal(result.limit, 17037);
+  assert.equal(result.attempts, 118);
+  assert.equal(result.purchaseWeight, 16919);
+  assert.equal(result.finalWeight, 871);
 });
 
 test('considera o rendimento dos lotes avançados e pesos fracionários ou zero', () => {
