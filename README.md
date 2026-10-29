@@ -24,6 +24,12 @@ Sete produtos ainda usam os pesos de referência bRO já presentes no projeto: P
 
 Para rodar os testes de cálculo com Node.js: `node --test`.
 
+## Preço de venda
+
+Após o custo da receita, **Por quanto vender?** mostra o preço mínimo estimado por item, o preço com lucro desejado e o lucro estimado do lote. **Lucro sobre o custo (%)** começa em 20%, pode ser alterado e é salvo junto ao planejamento. Um custo de 100 z com 20% resulta em preço de 120 z; 0% cobre apenas os materiais.
+
+O cálculo usa o custo total dos ingredientes, incluindo os já em estoque, o Desconto aplicável e a produção esperada com o rendimento e a chance configurados. Os preços são arredondados para cima em zeny inteiro. Com preços de materiais faltantes ou produção zero, o mínimo não é apresentado. Falhas reais podem reduzir a produção e aumentar o preço mínimo. Taxas de venda não estão incluídas.
+
 ## Publicação
 
 O GitHub Pages publica a branch `main`, pasta `/` (raiz). Atualize `index.html` e envie um commit para essa branch para publicar alterações.
