@@ -54,10 +54,10 @@ Plano, estoque, preços, favoritos e preferências ficam no armazenamento local 
 
 Download e instalação: https://igorkugan.github.io/ygg-alchemy/extension/
 
-Na lista de compras da receita ou do plano, **Enviar para extensão** transfere os materiais NPC e suas quantidades faltantes, descontando estoque e vasilhas conforme o cálculo atual. A extensão Manifest V3 guarda a lista localmente e preenche campos HTML reconhecidos na loja de suprimentos por nome. Ela não confirma compras e mantém os outros itens do carrinho.
+Na lista de compras da receita ou do plano, **Enviar para extensão** transfere os materiais NPC e suas quantidades faltantes, descontando estoque e vasilhas conforme o cálculo atual. A extensão Manifest V3 guarda a lista localmente. Na versão **1.1.0**, abra a loja e a categoria dos materiais no jogo e clique em **Preencher loja** no popup da extensão. Cada clique autoriza uma tentativa na aba ativa. Enviar uma lista, abrir loja, mudar categoria e recarregar não preenchem automaticamente. Ela não confirma compras e mantém os outros itens do carrinho.
 
-Instalação manual: extrair o ZIP, abrir `chrome://extensions`, ativar Modo do desenvolvedor, usar **Carregar sem compactação** na pasta com `manifest.json` e recarregar a calculadora/jogo. No popup é possível pausar, reaplicar explicitamente ou concluir/limpar a lista. Cada envio cria um novo lote; o progresso persiste e um lote fica vinculado à primeira aba/frame que reconheceu a loja.
+Instalação manual: extrair o ZIP, abrir `chrome://extensions`, ativar Modo do desenvolvedor, usar **Carregar sem compactação** na pasta com `manifest.json` e recarregar a calculadora/jogo. O ZIP 1.1 contém o manifest diretamente na raiz. Para atualizar, substitua os arquivos na mesma pasta já carregada, recarregue a extensão e as abas. O popup permite preencher novamente ou concluir/limpar a lista.
 
-Fontes da extensão em `chrome-extension/`, página de instalação em `extension/` e pacote versionado em `downloads/`. Recrie o ZIP com `python3 scripts/package-extension.py`. Não há dependências de execução ou serviços externos na extensão. Testes DOM usam jsdom: `npm ci && npm test`.
+Fontes em `chrome-extension/`, instalação em `extension/` e pacotes em `downloads/`. Recrie o ZIP com `python3 scripts/package-extension.py`. Sem dependências de execução ou serviços externos. Testes DOM: `npm ci && npm test`.
 
-**Limitação de validação:** o navegador remoto de teste não inicia o cliente por ausência de WebGL2. O transporte, o preenchimento e o ciclo da lista foram validados com uma loja de exemplo; a compatibilidade com a loja real precisa ser conferida no Chrome do usuário.
+O usuário confirmou o preenchimento no Chrome após recarregar a aba do jogo. O navegador remoto de desenvolvimento não inicia o cliente por ausência de WebGL2; a nova ação manual é verificada com a mesma interface de loja em testes DOM.

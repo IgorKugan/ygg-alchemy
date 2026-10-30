@@ -17,30 +17,37 @@ importScripts('shared.js');
       if (!isCalculator(sender)) throw Error('Origem não autorizada.');
       const items = validateItems(message.items);
       const label = typeof message.label === 'string' ? message.label.trim().slice(0, 200) : 'Lista de compras';
-      const next = { list: { id: crypto.randomUUID(), label, items, createdAt: Date.now() }, enabled: true, owner: null, filled: [], errors: [] };
+      const next = { list: { id: crypto.randomUUID(), label, items, createdAt: Date.now() }, request: null, owner: null, filled: [], errors: [] };
       await chrome.storage.local.set({ shopping: next });
       return { ok: true, count: items.length };
     }
-    if (['CLEAR_LIST', 'RESET_LIST', 'SET_ENABLED'].includes(message.type)) {
+    if (['CLEAR_LIST', 'FILL_REQUEST'].includes(message.type)) {
       if (!isPopup(sender)) throw Error('Origem não autorizada.');
       if (message.type === 'CLEAR_LIST') { await chrome.storage.local.set({ shopping: null }); return { ok: true }; }
       if (!shopping) throw Error('Envie uma lista pela calculadora.');
-      if (message.type === 'RESET_LIST') { shopping.list.id = crypto.randomUUID(); shopping.owner = null; shopping.filled = []; shopping.errors = []; shopping.enabled = true; }
-      else { if (typeof message.enabled !== 'boolean') throw Error('Estado inválido.'); shopping.enabled = message.enabled; }
+      if (!Number.isSafeInteger(message.tabId) || message.tabId < 0) throw Error('Abra a extensão na aba do jogo.');
+      shopping.request = { id: crypto.randomUUID(), tabId: message.tabId, createdAt: Date.now(), status: 'pending' };
+      shopping.owner = null; shopping.errors = [];
+      delete shopping.enabled;
       await chrome.storage.local.set({ shopping }); return { ok: true };
     }
     if (!['CLAIM_LIST', 'REPORT_FILL'].includes(message.type) || !isGame(sender)) throw Error('Origem ou ação não autorizada.');
     if (!shopping || message.id !== shopping.list.id) throw Error('A lista foi substituída.');
-    if (message.type === 'CLAIM_LIST' && !shopping.enabled) throw Error('Preenchimento pausado.');
-    if (shopping.owner && !owns(shopping, sender)) throw Error('Esta lista já está vinculada a outra aba do jogo. Use Reaplicar na extensão para trocar.');
+    const request = shopping.request;
+    if (!request || request.id !== message.requestId || request.tabId !== sender.tab.id) throw Error('Clique em Preencher loja na extensão, na aba do jogo.');
+    if (shopping.owner && !owns(shopping, sender)) throw Error('Este preenchimento pertence a outro frame.');
     if (message.type === 'CLAIM_LIST') {
-      if (!shopping.owner) { shopping.owner = { tabId: sender.tab.id, frameId: sender.frameId }; await chrome.storage.local.set({ shopping }); }
-      return { ok: true, list: shopping.list, remaining: shopping.list.items.filter(item => !shopping.filled.includes(item.id)) };
+      if (request.status !== 'pending' || Date.now() - request.createdAt > 5000) throw Error('Clique novamente em Preencher loja.');
+      shopping.owner = { tabId: sender.tab.id, frameId: sender.frameId }; request.status = 'running';
+      await chrome.storage.local.set({ shopping });
+      return { ok: true, list: shopping.list, remaining: shopping.list.items };
     }
+    if (request.status !== 'running') throw Error('Este preenchimento já terminou.');
     if (!owns(shopping, sender) || !Array.isArray(message.filled) || message.filled.some(id => !shopping.list.items.some(item => item.id === id))) throw Error('Progresso inválido.');
     if (message.errors !== undefined && (!Array.isArray(message.errors) || message.errors.length > 200 || message.errors.some(text => typeof text !== 'string' || text.length > 300))) throw Error('Relatório inválido.');
     shopping.filled = [...new Set([...shopping.filled, ...message.filled])];
     shopping.errors = (message.errors || []).slice(0, 200);
+    request.status = 'done';
     await chrome.storage.local.set({ shopping }); return { ok: true };
   }
   // Serialize claims and updates from multiple game tabs/frames.

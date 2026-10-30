@@ -1,28 +1,27 @@
-Ygg Alchemy — Compras 1.0.0
+Ygg Alchemy — Compras 1.1.0
 
 INSTALAR
-1. Extraia o ZIP e mantenha a pasta ygg-alchemy-extension.
+1. Extraia o ZIP em uma pasta permanente.
 2. Abra chrome://extensions no Chrome do computador.
-3. Ative Modo do desenvolvedor.
-4. Clique em Carregar sem compactação e selecione a pasta que contém manifest.json.
+3. Ative Modo do desenvolvedor (Developer mode).
+4. Clique em Carregar sem compactação (Load unpacked) e selecione a pasta que contém manifest.json.
 5. Recarregue a calculadora e o jogo.
 
 USAR
 Na lista de compras da receita ou do plano, clique em Enviar para extensão.
-Abra a loja de suprimentos no jogo e a categoria dos materiais.
-A extensão preenche por nome as quantidades que faltam comprar.
-Confira o carrinho completo e confirme a compra no jogo.
-A extensão mantém outros itens que já estavam no carrinho.
+Na aba do jogo, abra a loja de suprimentos e selecione Alquimia (ou a categoria dos materiais).
+Abra o ícone da extensão e clique em Preencher loja.
+A extensão preenche somente naquele momento. Enviar lista, abrir loja, mudar categoria e recarregar não preenchem automaticamente.
+Confira o carrinho completo e confirme a compra no jogo. Outros itens do carrinho são mantidos.
+Para outra categoria ou para repetir as quantidades, clique novamente em Preencher loja.
+Concluir / limpar apaga a lista da extensão.
 
-No ícone da extensão: veja pendências, pause, reaplique explicitamente ou conclua/limpe a lista.
-Cada envio é um novo lote. Materiais preenchidos não são repetidos automaticamente.
-A lista fica vinculada à primeira aba/frame que reconhecer a loja.
-Para trocar, feche a loja anterior e use Reaplicar lista.
+ATUALIZAR DA VERSÃO 1.0
+Substitua os arquivos na pasta que já estava carregada no Chrome pelos arquivos deste ZIP.
+Em chrome://extensions, clique em Recarregar na extensão. Depois recarregue o jogo e a calculadora.
+O manifest.json agora vem diretamente na raiz do ZIP, sem uma pasta interna extra.
 
-Versão inicial: validada em loja de exemplo. Validação na loja real ainda pendente.
-Se a interface ou um nome não for reconhecido, preencha o item manualmente.
-
-AJUDA E ATUALIZAÇÕES
+AJUDA
 https://igorkugan.github.io/ygg-alchemy/extension/
 
 Permissões: armazenamento local e content scripts apenas na calculadora e no jogo.

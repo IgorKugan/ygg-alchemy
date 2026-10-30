@@ -42,22 +42,26 @@ test('mensagens estrangeiras e inválidas preservam a lista anterior',async()=>{
  assert.equal(w.data.shopping.list.id,id);
  assert.equal((await w.send({type:'CLEAR_LIST'},game)).ok,false);
 });
-test('um lote fica vinculado ao primeiro frame e o progresso persiste sem repetir compras',async()=>{
+test('preenchimento exige clique do popup e token da aba escolhida',async()=>{
  const w=await worker();await w.send(list,calc);const id=w.data.shopping.list.id;
- assert.equal((await w.send({type:'CLAIM_LIST',id},game)).ok,true);
- assert.equal((await w.send({type:'CLAIM_LIST',id},{...game,tab:{id:3}})).ok,false);
- assert.equal((await w.send({type:'REPORT_FILL',id,filled:[1092],errors:[]},game)).ok,true);
- assert.deepEqual(w.data.shopping.filled,[1092]);
- assert.deepEqual(plain((await w.send({type:'CLAIM_LIST',id},game)).remaining),[{id:1093,name:'Garrafa de Poção',quantity:500}]);
- await w.send({type:'SET_ENABLED',enabled:false},popup);
  assert.equal((await w.send({type:'CLAIM_LIST',id},game)).ok,false);
- await w.send({type:'RESET_LIST'},popup);assert.equal(w.data.shopping.enabled,true);assert.deepEqual(w.data.shopping.filled,[]);
- await w.send(list,calc);assert.notEqual(w.data.shopping.list.id,id);assert.equal(w.data.shopping.owner,null);
+ assert.equal((await w.send({type:'FILL_REQUEST',tabId:2},game)).ok,false);
+ assert.equal((await w.send({type:'FILL_REQUEST',tabId:2},popup)).ok,true);
+ const requestId=w.data.shopping.request.id;
+ assert.equal((await w.send({type:'CLAIM_LIST',id,requestId},{...game,tab:{id:3}})).ok,false);
+ assert.equal((await w.send({type:'CLAIM_LIST',id,requestId},game)).ok,true);
+ assert.equal((await w.send({type:'CLAIM_LIST',id,requestId},game)).ok,false);
+ assert.equal((await w.send({type:'REPORT_FILL',id,requestId,filled:[1092],errors:[]},game)).ok,true);
+ assert.deepEqual(w.data.shopping.filled,[1092]);assert.equal(w.data.shopping.request.status,'done');
+ await w.send({type:'FILL_REQUEST',tabId:2},popup);const second=w.data.shopping.request.id;assert.notEqual(second,requestId);
+ const claim=await w.send({type:'CLAIM_LIST',id,requestId:second},game);assert.equal(claim.remaining.length,2);
+ assert.equal((await w.send({type:'REPORT_FILL',id,requestId,filled:[1093]},game)).ok,false);
  await w.send({type:'CLEAR_LIST'},popup);assert.equal(w.data.shopping,null);
 });
-test('relatórios de outro frame, IDs desconhecidos e lote antigo são rejeitados',async()=>{
+test('relatórios de outro frame, token errado e IDs desconhecidos são rejeitados',async()=>{
  const w=await worker();await w.send(list,calc);const id=w.data.shopping.list.id;
- await w.send({type:'CLAIM_LIST',id},game);
- for(const [message,sender]of [[{type:'REPORT_FILL',id,filled:[999]},game],[{type:'REPORT_FILL',id,filled:[1092]},{...game,frameId:8}],[{type:'REPORT_FILL',id:'old',filled:[1092]},game]])assert.equal((await w.send(message,sender)).ok,false);
+ await w.send({type:'FILL_REQUEST',tabId:2},popup);const requestId=w.data.shopping.request.id;
+ await w.send({type:'CLAIM_LIST',id,requestId},game);
+ for(const [message,sender]of [[{type:'REPORT_FILL',id,requestId,filled:[999]},game],[{type:'REPORT_FILL',id,requestId,filled:[1092]},{...game,frameId:8}],[{type:'REPORT_FILL',id,requestId:'old',filled:[1092]},game]])assert.equal((await w.send(message,sender)).ok,false);
  assert.deepEqual(w.data.shopping.filled,[]);
 });

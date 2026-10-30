@@ -12,7 +12,7 @@ target = ROOT / 'downloads' / f'ygg-alchemy-extension-{manifest["version"]}.zip'
 target.parent.mkdir(exist_ok=True)
 with ZipFile(target, 'w', compression=ZIP_DEFLATED, compresslevel=9) as archive:
     for name in sorted(files):
-        info = ZipInfo('ygg-alchemy-extension/' + name, date_time=(2026, 10, 30, 0, 0, 0))
+        info = ZipInfo(name, date_time=(2026, 10, 30, 0, 0, 0))
         info.compress_type = ZIP_DEFLATED
         info.external_attr = 0o100644 << 16
         archive.writestr(info, (SOURCE / name).read_bytes())

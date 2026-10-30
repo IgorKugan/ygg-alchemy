@@ -13,7 +13,7 @@
   window.addEventListener('message', event => {
     const data = event.data;
     if (event.source !== window || event.origin !== location.origin || data?.channel !== channel || data.type !== 'LIST_RESULT' || data.requestId !== pending?.id) return;
-    finish(data.ok ? 'Lista enviada para a extensão. Abra a loja no jogo.' : 'Não foi possível enviar: ' + String(data.error || 'tente novamente.').slice(0, 200));
+    finish(data.ok ? 'Lista enviada. Abra a categoria no jogo e clique em Preencher loja na extensão.' : 'Não foi possível enviar: ' + String(data.error || 'tente novamente.').slice(0, 200));
   });
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-send-extension]');
