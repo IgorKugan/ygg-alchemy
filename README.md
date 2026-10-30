@@ -40,6 +40,12 @@ O cálculo usa o custo total dos ingredientes, incluindo os já em estoque, o De
 
 O GitHub Pages publica a branch `main`, pasta `/` (raiz). Atualize `index.html` e envie um commit para essa branch para publicar alterações.
 
+## Números e cópia rápida
+
+Resumos de quantidades e valores usam `k` para mil e `kk` para milhão (por exemplo, `800k`, `5kk` e `900kk`), com até duas casas decimais. Totais de materiais, quantidades a comprar e preços mínimo e sugerido de venda aparecem completos, sem separadores de milhar: clique no número para copiar somente os dígitos. Os controles também funcionam por teclado e mostram uma confirmação após a cópia.
+
+Campos de edição, valores salvos e quantidades nas listas exportadas continuam completos. A abreviação só muda a apresentação dos resumos.
+
 ## Dados salvos
 
 Plano, estoque, preços, favoritos e preferências ficam no armazenamento local de cada navegador e endereço. Não são sincronizados entre dispositivos. Para levar um planejamento do arquivo local ou de outro endereço, use **Meu plano → Exportar plano .json** e depois **Importar plano** no site publicado.
