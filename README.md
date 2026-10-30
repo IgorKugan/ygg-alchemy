@@ -54,10 +54,18 @@ Plano, estoque, preços, favoritos e preferências ficam no armazenamento local 
 
 Download e instalação: https://igorkugan.github.io/ygg-alchemy/extension/
 
-Na lista de compras da receita ou do plano, **Enviar para extensão** transfere os materiais NPC e suas quantidades faltantes, descontando estoque e vasilhas conforme o cálculo atual. A extensão Manifest V3 guarda a lista localmente. Na versão **1.1.0**, abra a loja e a categoria dos materiais no jogo e clique em **Preencher loja** no popup da extensão. Cada clique autoriza uma tentativa na aba ativa. Enviar uma lista, abrir loja, mudar categoria e recarregar não preenchem automaticamente. Ela não confirma compras e mantém os outros itens do carrinho.
+Na lista de compras da receita ou do plano, **Enviar para extensão** transfere os materiais NPC e suas quantidades faltantes, descontando estoque e vasilhas conforme o cálculo atual. A extensão Manifest V3 guarda a lista localmente. Na versão **1.2.0**, abra a loja e a categoria dos materiais no jogo e clique em **Preencher loja** no popup da extensão. Cada clique autoriza uma tentativa na aba ativa. Enviar uma lista, abrir loja, mudar categoria e recarregar não preenchem automaticamente. Ela não confirma compras e mantém os outros itens do carrinho.
 
 Instalação manual: extrair o ZIP, abrir `chrome://extensions`, ativar Modo do desenvolvedor, usar **Carregar sem compactação** na pasta com `manifest.json` e recarregar a calculadora/jogo. O ZIP 1.1 contém o manifest diretamente na raiz. Para atualizar, substitua os arquivos na mesma pasta já carregada, recarregue a extensão e as abas. O popup permite preencher novamente ou concluir/limpar a lista.
 
 Fontes em `chrome-extension/`, instalação em `extension/` e pacotes em `downloads/`. Recrie o ZIP com `python3 scripts/package-extension.py`. Sem dependências de execução ou serviços externos. Testes DOM: `npm ci && npm test`.
 
 O usuário confirmou o preenchimento no Chrome após recarregar a aba do jogo. O navegador remoto de desenvolvimento não inicia o cliente por ausência de WebGL2; a nova ação manual é verificada com a mesma interface de loja em testes DOM.
+
+### Autocraft (1.2.0)
+
+No popup da extensão, configure a tecla da skill (padrão `1`), a receita exata (vazio usa o primeiro item), tempos e limite opcional. **Iniciar** conecta `chrome.debugger` e usa exclusivamente `Input.dispatchKeyEvent` e `Input.dispatchMouseEvent` para acionar a skill, selecionar e confirmar a fabricação. O adaptador encontra janelas clássicas `MakeItemSelection`, `MakeArrowSelection` e `ItemSelection`, inclusive Shadow DOM e botões bitmap `btn_ok.bmp`. Confirmações extras ficam vinculadas ao fluxo reconhecido.
+
+**Parar**, Esc, troca de aba, navegação, desconexão ou três tentativas sem janela encerram a sessão. Reload nunca retoma uma sessão. Só o popup pode iniciar; um único frame na aba ativa recebe os comandos. A permissão `debugger` é obrigatória para esse recurso; Chrome 118+ mantém o worker ativo enquanto conectado. Macro Maker/DevTools podem disputar a conexão. A compra continua manual.
+
+Testes cobrem repetição, duas confirmações, receitas duplicadas/ausentes, parada, autorização de origem/frame, liberação das teclas/botões e integração do popup. A execução no cliente do jogo precisa ser confirmada pelo usuário (o navegador de validação não oferece WebGL2).
