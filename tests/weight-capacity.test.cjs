@@ -147,7 +147,7 @@ test('mantém todos os estágios do craft até 90% e encontra o maior lote com v
 test('salva a quantidade de vasilhas e abre planos antigos com zero nesse campo', () => {
   const elements = new Map();
   const ui = { C: core, state: { form: { quantity: 1, mode: 'attempts', yield: 1, success: 100 } },
-    $: id => { if (!elements.has(id)) elements.set(id, {}); return elements.get(id); } };
+    renderWeightMaterials() {}, $: id => { if (!elements.has(id)) elements.set(id, {}); return elements.get(id); } };
   for (const name of ['validNumber', 'cleanSnapshot', 'sanitize', 'fillForm']) {
     runInNewContext(html.split('\n').find(line => line.startsWith(`function ${name}(`)), ui);
   }
@@ -178,4 +178,56 @@ test('recalcula o custo da calculadora com as vasilhas carregadas mesmo em outra
   const form = { quantity: 5, mode: 'attempts', yield: 1, success: 100 };
   assert.equal(core.craftEconomics(recipe('cellular'), form, ui.economicsOptions(true)).remaining.sum, 62024);
   assert.equal(core.craftEconomics(recipe('cellular'), form, ui.economicsOptions()).remaining.sum, 62000);
+});
+
+test('usa tubos e garrafas da mochila, compra só xarope e mantém todos os extras', () => {
+  const result = capacity('redelixir', { current: 100, max: 1000, bowls: 100, carried: { tube: 200, potionbottle: 100 } });
+  assert.equal(result.attempts, 3);
+  assert.equal(result.carriedWeight, 400);
+  assert.equal(result.startingWeight, 500);
+  assert.equal(result.purchaseWeight, 815);
+  assert.equal(result.finalWeight, 452.6);
+  assert.equal(result.toBuy.tube, 0);
+  assert.equal(result.toBuy.potionbottle, 0);
+  assert.equal(result.toBuy.redsyrup, 45);
+  assert.equal(result.remaining.tube, 170);
+  assert.equal(result.remaining.potionbottle, 85);
+});
+test('peso total do jogo inclui materiais uma única vez e calcula próximo lote sem estoque', () => {
+  assert.equal(typeof core.weightBatches, 'function');
+  const result = core.weightBatches(recipe('redelixir'), {yield:1,success:100}, {current:500,max:1000,bowls:100,carried:{tube:200,potionbottle:100},includesMaterials:true});
+  assert.equal(result.first.baseWeight,100);
+  assert.equal(result.first.attempts,3);
+  assert.equal(result.empty.attempts,6);
+  assert.equal(result.empty.purchaseWeight,826);
+  assert.equal(result.empty.finalWeight,101.2);
+  assert.equal(result.empty.toBuy.tube,60);
+  assert.equal(result.empty.toBuy.potionbottle,30);
+  assert.equal(result.empty.toBuy.bowl,6);
+  assert.equal(result.empty.toBuy.redsyrup,90);
+  assert.equal(result.empty.startingWeight,100);
+});
+test('materiais de outra receita continuam pesando no primeiro lote', () => {
+  const result=capacity('redelixir',{current:100,max:1000,bowls:100,carried:{tube:200,potionbottle:100,bluesyrup:10}});
+  assert.equal(result.attempts,2);
+  assert.equal(result.startingWeight,600);
+  assert.equal(result.purchaseWeight,810);
+  assert.equal(result.finalWeight,568.4);
+  assert.equal(result.remaining.bluesyrup,10);
+});
+test('recusa estoque da mochila inválido e peso total menor que os materiais', () => {
+  for(const tube of [-1,.5,NaN,Infinity,'3',1000000001])assert.throws(()=>capacity('redelixir',{current:100,max:1000,carried:{tube}}),/quantidade|mochila|material/i);
+  assert.throws(()=>capacity('redelixir',{current:99,max:1000,carried:{tube:100},includesMaterials:true}),/peso.*materiais|materiais.*peso/i);
+});
+test('todos os lotes com materiais misturados respeitam os estágios e são máximos',()=>{
+ for(const r of core.recipes)for(const y of [1,300]){
+  const carried=Object.fromEntries(Object.entries(r.ingredients).filter(([id])=>id!=='bowl').map(([id,n],i)=>[id,n*(i%3)])),bowls=30;
+  const bag={...carried,bowl:bowls},unit=id=>core.itemWeight(core.materials[id].id),initial=100+Object.entries(bag).reduce((s,[id,n])=>s+n*unit(id),0);
+  const info=capacity(r.id,{current:100,max:1000,bowls,carried},{yield:y});
+  if(initial>900){assert.equal(info.attempts,0);continue;}
+  const bought=n=>100+Object.keys(r.ingredients).reduce((sum,id)=>sum+Math.max(bag[id]||0,n*r.ingredients[id])*unit(id),0);
+  const ingredient=Object.entries(r.ingredients).reduce((sum,[id,n])=>sum+n*unit(id),0),output=y*core.itemWeight(r.itemId);
+  for(let j=0;j<=info.attempts;j++)assert.ok(bought(info.attempts)+j*(output-ingredient)<=900+1e-7,r.id+' stage '+j);
+  assert.ok(bought(info.attempts+1)>900||bought(info.attempts+1)+(info.attempts+1)*(output-ingredient)>900,r.id+' maximal');
+ }
 });

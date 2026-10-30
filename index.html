@@ -164,8 +164,9 @@ html[data-theme=light] .copy-number:hover{background:var(--panel2);color:var(--g
 <div id="advancedControls" class="hidden"><div class="stats"><div><label for="dex">DES base</label><input id="dex" type="number" min="0" max="1000" step="1" value="120"></div><div><label for="luk">SOR base</label><input id="luk" type="number" min="0" max="1000" step="1" value="120"></div><div><label for="int">INT base</label><input id="int" type="number" min="0" max="1000" step="1" value="120"></div><div><label for="batchBase">Base do lote</label><input id="batchBase" type="number" min="1" max="1000000" step="1" value="50"></div></div><div class="help">Atributos sem equipamentos/buffs. Base publicada: 50; altere se o jogo mostrar outro valor.</div></div>
 <section class="weight-panel" aria-labelledby="weightTitle">
  <h3 id="weightTitle">Quanto cabe no personagem?</h3>
- <p class="help" id="weightHelp">Informe o peso dos equipamentos, livros e outros itens sem as vasilhas. As vasilhas entram no campo separado e seu peso é somado automaticamente. Se usar o peso total do jogo, desconte dele o peso das vasilhas antes de preencher. Os demais ingredientes são calculados como uma compra nova, sem descontar Meu estoque.</p>
- <div class="feature-fields"><div class="field"><label for="weightCurrent">Peso atual sem as vasilhas</label><input id="weightCurrent" type="number" min="0" max="1000000000" step="0.1" inputmode="decimal" placeholder="Ex.: 1200" aria-describedby="weightHelp"></div><div class="field"><label for="weightMax">Capacidade máxima de peso</label><input id="weightMax" type="number" min="0.1" max="1000000000" step="0.1" inputmode="decimal" placeholder="Ex.: 10000" aria-describedby="weightHelp"></div><div class="field"><label for="weightBowls">Vasilhas que já tenho no inventário</label><input id="weightBowls" type="number" min="0" max="1000000000" step="1" inputmode="numeric" placeholder="0" aria-describedby="weightBowlsHelp"><small id="weightBowlsHelp" class="help">Quantidade, não peso. Usa estas vasilhas primeiro; as extras continuam pesando após o craft.</small></div></div>
+ <p class="help" id="weightHelp">Informe o peso atual e os ingredientes que já estão na mochila. Marque a opção abaixo se usar o peso total exibido no jogo; assim os materiais não são contados duas vezes. Sem a opção, informe apenas o peso dos demais itens. Estes campos são separados de Meu estoque.</p>
+ <div class="feature-fields"><div class="field"><label id="weightCurrentLabel" for="weightCurrent">Peso atual</label><input id="weightCurrent" type="number" min="0" max="1000000000" step="0.1" inputmode="decimal" placeholder="Ex.: 1200" aria-describedby="weightHelp"></div><div class="field"><label for="weightMax">Capacidade máxima de peso</label><input id="weightMax" type="number" min="0.1" max="1000000000" step="0.1" inputmode="decimal" placeholder="Ex.: 10000" aria-describedby="weightHelp"></div></div>
+ <label class="checkline"><input id="weightIncludesMaterials" type="checkbox">O peso atual já inclui os materiais abaixo (total do jogo)</label><h4>Materiais que já tenho na mochila</h4><div class="feature-fields"><div class="field"><label for="weightBowls">Vasilhas que já tenho na mochila</label><input id="weightBowls" type="number" min="0" max="1000000000" step="1" inputmode="numeric" placeholder="0" aria-describedby="weightBowlsHelp"><small id="weightBowlsHelp" class="help">Quantidade, não peso. Usa estas vasilhas primeiro; as extras continuam pesando após o craft.</small></div></div><div id="weightMaterials" class="feature-fields"></div><p class="help">O primeiro lote usa estes materiais e compra só o que falta. As sobras continuam pesando. Nos próximos lotes, os materiais informados são zerados; o peso dos demais itens é mantido.</p>
  <div class="controls"><div class="field"><label for="yield">Itens por preparo bem-sucedido</label><input id="yield" type="number" min="1" max="1000000" step="1" value="1"></div><div class="field"><label for="success">Chance de sucesso usada (%)</label><input id="success" type="number" min="0.01" max="100" step="0.01" value="100"></div></div>
  <div id="weightResult" aria-live="polite" aria-atomic="true"></div>
  <p class="help">Usa o rendimento acima e reserva espaço como se todos os preparos tivessem sucesso. Os ingredientes são consumidos e os produtos se acumulam, mantendo o peso até 90% durante todo o lote.</p>
@@ -430,33 +431,52 @@ function itemWeight(id){
  const line=itemDescription(id)?.lines.find(line=>/^Peso:\s*[\d.,]+\s*$/.test(line));
  return line?Number(line.replace(/^Peso:\s*/,'').replace(',','.')):null;
 }
+function carriedInventory(weight={}){
+ const owned={},bowls=weight.bowls??0;
+ if(!Number.isInteger(bowls)||bowls<0||bowls>1e9)throw Error('Informe uma quantidade inteira de vasilhas entre 0 e 1 bilhão.');
+ if(weight.carried!==undefined&&(!weight.carried||typeof weight.carried!=='object'||Array.isArray(weight.carried)))throw Error('Materiais da mochila inválidos.');
+ for(const [id,quantity] of Object.entries(weight.carried||{})){
+  if(!materials[id]||id==='bowl'||!Number.isInteger(quantity)||quantity<0||quantity>1e9)throw Error('Informe quantidades inteiras de materiais da mochila entre 0 e 1 bilhão.');
+  if(quantity>0)owned[id]=quantity;
+ }
+ owned.bowl=bowls;return owned;
+}
 function weightCapacity(recipe,profile,weight){
  const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1e9&&Math.abs(n*10-Math.round(n*10))<1e-6;
  if(!weight||!valid(weight.current)||!valid(weight.max)||weight.max===0)throw Error('Informe peso atual e capacidade máxima válidos, com até uma casa decimal.');
  if(weight.current>weight.max)throw Error('O peso atual não pode superar a capacidade máxima.');
- const bowls=weight.bowls??0;
- if(!Number.isInteger(bowls)||bowls<0||bowls>1e9)throw Error('Informe uma quantidade inteira de vasilhas entre 0 e 1 bilhão.');
+ const owned=carriedInventory(weight);
  calculate(recipe,{...profile,quantity:1,mode:'attempts'});
- let ingredientUnits=0,reference=false;
- for(const [id,quantity] of Object.entries(recipe.ingredients)){
+ let ingredientUnits=0,carriedUnits=0,reference=false;const weights={};
+ for(const id of new Set([...Object.keys(recipe.ingredients),...Object.keys(owned)])){
   const m=materials[id],value=itemWeight(m?.id);
   if(value===null)throw Error('Peso não disponível para '+(m?.name||id)+'.');
-  ingredientUnits+=Math.round(value*10)*quantity;reference||=itemDescription(m.id).reference===true;
+  weights[id]=Math.round(value*10);ingredientUnits+=weights[id]*(recipe.ingredients[id]||0);carriedUnits+=weights[id]*(owned[id]||0);reference||=itemDescription(m.id).reference===true;
  }
  const productWeight=itemWeight(recipe.itemId);
  if(productWeight===null)throw Error('Peso do produto não disponível.');
  const outputUnits=Math.round(productWeight*10)*profile.yield,currentUnits=Math.round(weight.current*10),maxUnits=Math.round(weight.max*10);
- const bowlUnits=Math.round(itemWeight(materials.bowl.id)*10),bowlsPerAttempt=recipe.ingredients.bowl||0;
- const limitUnits=Math.floor(maxUnits*9/10),startingUnits=currentUnits+bowls*bowlUnits;
- const purchaseUnits=n=>startingUnits+n*(ingredientUnits-bowlsPerAttempt*bowlUnits)+Math.max(0,n*bowlsPerAttempt-bowls)*bowlUnits;
- const finalUnits=n=>currentUnits+Math.max(0,bowls-n*bowlsPerAttempt)*bowlUnits+n*outputUnits;
- // Antes, durante e depois do craft: os extremos limitam todos os estágios.
+ const baseUnits=currentUnits-(weight.includesMaterials===true?carriedUnits:0);
+ if(baseUnits<0)throw Error('O peso dos materiais informados supera o peso atual do jogo. Confira as quantidades ou desmarque a opção de peso total.');
+ const limitUnits=Math.floor(maxUnits*9/10),startingUnits=baseUnits+carriedUnits;
+ const purchaseUnits=n=>baseUnits+Object.keys(weights).reduce((sum,id)=>sum+weights[id]*Math.max(owned[id]||0,n*(recipe.ingredients[id]||0)),0);
+ const finalUnits=n=>purchaseUnits(n)+n*(outputUnits-ingredientUnits);
+ // Each craft replaces a fixed ingredient weight with at most the full output.
+ // Checking both endpoints bounds every intermediate stage. The final-weight
+ // function is convex; with stage zero feasible, a binary search is valid.
  let attempts=0,high=startingUnits<=limitUnits?1e9:0;
  while(attempts<high){const middle=Math.ceil((attempts+high)/2);if(purchaseUnits(middle)<=limitUnits&&finalUnits(middle)<=limitUnits)attempts=middle;else high=middle-1;}
+ const toBuy=Object.fromEntries(Object.entries(recipe.ingredients).map(([id,n])=>[id,Math.max(0,attempts*n-(owned[id]||0))]));
+ const remaining=Object.fromEntries(Object.entries(owned).map(([id,n])=>[id,Math.max(0,n-attempts*(recipe.ingredients[id]||0))]));
  return {attempts,items:attempts*profile.yield,limit:weight.max*.9,ingredientsPerAttempt:ingredientUnits/10,outputPerAttempt:outputUnits/10,
-  startingWeight:startingUnits/10,bowlWeight:bowls*bowlUnits/10,bowlsToBuy:Math.max(0,attempts*bowlsPerAttempt-bowls),bowlsRemaining:Math.max(0,bowls-attempts*bowlsPerAttempt),
+  owned,toBuy,remaining,baseWeight:baseUnits/10,carriedWeight:carriedUnits/10,startingWeight:startingUnits/10,bowlWeight:(owned.bowl||0)*weights.bowl/10,bowlsToBuy:toBuy.bowl||0,bowlsRemaining:remaining.bowl||0,
   purchaseWeight:purchaseUnits(attempts)/10,finalWeight:finalUnits(attempts)/10,
   reference:reference||itemDescription(recipe.itemId).reference===true};
+}
+function weightBatches(recipe,profile,weight){
+ const first=weightCapacity(recipe,profile,weight);
+ const empty=weightCapacity(recipe,profile,{current:first.baseWeight,max:weight.max,bowls:0,carried:{},includesMaterials:false});
+ return {first,empty};
 }
 function descriptionHover({schedule,cancel,show,hide}){
  let pending=null,target=null;
@@ -539,7 +559,7 @@ function formatNumber(n){if(typeof n!=='number'||!Number.isFinite(n))return '—
 function rawNumber(n){return typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:20}):'—';}
 function copyNumber(n){if(!Number.isSafeInteger(n)||n<0)return rawNumber(n);const text=String(n);return `<button type="button" class="copy-number" data-copy-number="${text}" title="Copiar ${text}" aria-label="Copiar ${text}">${text}</button>`;}
 function npcShoppingList(totals){return Object.entries(totals).filter(([id,t])=>materials[id]?.npc&&Number.isSafeInteger(t.missing)&&t.missing>0).map(([id,t])=>({id:materials[id].id,name:materials[id].name,quantity:t.missing}));}
-globalThis.CraftCore={npcShoppingList,calculate,aggregate,batchYield,recipes,materials,buildFarmRoutes,unitPrice,purchaseSummary,discountedPrice,shopGoods,removedRecipeIds,farmAudit,compareFarmMaps,scoreFarmMap,materialMaps,profileFor,stockOptions,inventoryOptions,craftEconomics,salePricing,rankingOptions,goalProgress,mapEffort,simulateAttributes,normalizeExtras,itemDescription,itemWeight,weightCapacity,descriptionHover,formatNumber,rawNumber,copyNumber};
+globalThis.CraftCore={npcShoppingList,calculate,aggregate,batchYield,recipes,materials,buildFarmRoutes,unitPrice,purchaseSummary,discountedPrice,shopGoods,removedRecipeIds,farmAudit,compareFarmMaps,scoreFarmMap,materialMaps,profileFor,stockOptions,inventoryOptions,craftEconomics,salePricing,rankingOptions,goalProgress,mapEffort,simulateAttributes,normalizeExtras,itemDescription,itemWeight,carriedInventory,weightCapacity,weightBatches,descriptionHover,formatNumber,rawNumber,copyNumber};
 </script>
 <script>
 'use strict';
@@ -548,14 +568,14 @@ const flask='<svg viewBox="0 0 28 36" fill="none" aria-hidden="true"><path d="M9
 const storageKey='ygg-alchemy-v1';let state={selected:'cellular',form:{quantity:100,mode:'items',yield:1,success:100,dex:120,luk:120,int:120,batchBase:50},plan:[],owned:{},prices:{},discount:false};let view='calculator',current=null,focusBeforeDialog=null,toastTimer;
 function validNumber(x,min,max,integer=false){return typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max&&(!integer||Number.isInteger(x));}
 function cleanSnapshot(s){if(!s||!C.recipes.some(r=>r.id===s.recipeId))throw Error('Receita inválida no plano.');const f=s.form;if(!f)throw Error('Plano sem quantidades.');const copy={quantity:Number(f.quantity),mode:f.mode,yield:Number(f.yield),success:Number(f.success),dex:Number(f.dex??120),luk:Number(f.luk??120),int:Number(f.int??120),batchBase:Number(f.batchBase??50)};C.calculate(C.recipes.find(r=>r.id===s.recipeId),copy);for(const k of ['dex','luk','int'])if(!validNumber(copy[k],0,1000,true))throw Error('Atributos inválidos.');if(!validNumber(copy.batchBase,1,1e6,true))throw Error('Base inválida.');return{recipeId:s.recipeId,form:copy};}
-function sanitize(data){if(!data||data.version!==1||!Array.isArray(data.plan)||data.plan.length>100)throw Error('Arquivo de plano inválido ou de outra versão.');const base={selected:C.recipes.some(r=>r.id===data.selected)?data.selected:'cellular',plan:data.plan.filter(s=>!C.removedRecipeIds.includes(s?.recipeId)).map(cleanSnapshot),owned:{},prices:{},discount:data.discount===true,form:state.form,route:{recipes:[],materials:[],includeNPC:false,stops:[]}};if(data.route){const r=data.route;if(Array.isArray(r.recipes))base.route.recipes=[...new Set(r.recipes.filter(id=>C.recipes.some(x=>x.id===id)))];if(Array.isArray(r.materials))base.route.materials=[...new Set(r.materials.filter(id=>C.materials[id]))];base.route.includeNPC=r.includeNPC===true;if(Array.isArray(r.stops))base.route.stops=[...new Set(r.stops.filter(x=>typeof x==='string'&&/^[a-zA-Z0-9_@-]{1,40}$/.test(x)))].slice(0,300);}for(const k of Object.keys(C.materials)){if(validNumber(data.owned?.[k],0,1e12,true))base.owned[k]=data.owned[k];if(validNumber(data.prices?.[k],0,1e12))base.prices[k]=data.prices[k];}const extra=C.normalizeExtras(data);base.favorites=extra.favorites;base.profiles=extra.profiles;base.simulator=extra.simulator;base.route.goal=extra.goal;if(data.form)base.form=cleanSnapshot({recipeId:base.selected,form:data.form}).form;base.weight={};for(const key of ['current','max'])base.weight[key]=validNumber(data.weight?.[key],0,1e9)?data.weight[key]:null;base.weight.bowls=validNumber(data.weight?.bowls,0,1e9,true)?data.weight.bowls:0;base.weight.active=data.weight?.active===true&&base.weight.current!==null&&base.weight.max>0;base.saleProfit=validNumber(data.saleProfit,0,1e6)?data.saleProfit:20;return base;}
+function sanitize(data){if(!data||data.version!==1||!Array.isArray(data.plan)||data.plan.length>100)throw Error('Arquivo de plano inválido ou de outra versão.');const base={selected:C.recipes.some(r=>r.id===data.selected)?data.selected:'cellular',plan:data.plan.filter(s=>!C.removedRecipeIds.includes(s?.recipeId)).map(cleanSnapshot),owned:{},prices:{},discount:data.discount===true,form:state.form,route:{recipes:[],materials:[],includeNPC:false,stops:[]}};if(data.route){const r=data.route;if(Array.isArray(r.recipes))base.route.recipes=[...new Set(r.recipes.filter(id=>C.recipes.some(x=>x.id===id)))];if(Array.isArray(r.materials))base.route.materials=[...new Set(r.materials.filter(id=>C.materials[id]))];base.route.includeNPC=r.includeNPC===true;if(Array.isArray(r.stops))base.route.stops=[...new Set(r.stops.filter(x=>typeof x==='string'&&/^[a-zA-Z0-9_@-]{1,40}$/.test(x)))].slice(0,300);}for(const k of Object.keys(C.materials)){if(validNumber(data.owned?.[k],0,1e12,true))base.owned[k]=data.owned[k];if(validNumber(data.prices?.[k],0,1e12))base.prices[k]=data.prices[k];}const extra=C.normalizeExtras(data);base.favorites=extra.favorites;base.profiles=extra.profiles;base.simulator=extra.simulator;base.route.goal=extra.goal;if(data.form)base.form=cleanSnapshot({recipeId:base.selected,form:data.form}).form;base.weight={};for(const key of ['current','max'])base.weight[key]=validNumber(data.weight?.[key],0,1e9)?data.weight[key]:null;base.weight.bowls=validNumber(data.weight?.bowls,0,1e9,true)?data.weight.bowls:0;base.weight.carried={};for(const k of Object.keys(C.materials))if(k!=='bowl'&&validNumber(data.weight?.carried?.[k],0,1e9,true))base.weight.carried[k]=data.weight.carried[k];base.weight.includesMaterials=data.weight?.includesMaterials===true;base.weight.active=data.weight?.active===true&&base.weight.current!==null&&base.weight.max>0;base.saleProfit=validNumber(data.saleProfit,0,1e6)?data.saleProfit:20;return base;}
 try{const s=localStorage.getItem(storageKey);if(s)state=sanitize(JSON.parse(s));}catch(e){$('saveStatus').textContent='Armazenamento indisponível ou plano anterior inválido. Use Exportar plano para salvar.';}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify({version:1,...state}));$('saveStatus').textContent='Plano e configurações salvos neste navegador.';}catch{$('saveStatus').textContent='Sem armazenamento local. Use Exportar plano para guardar suas alterações.';}}
 function toast(message){$('toast').textContent=message;$('toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),3200);}
 function selected(){return C.recipes.find(r=>r.id===state.selected);}
 function priceOf(id){return C.unitPrice(id,state.discount,state.prices);}
 function readForm(){const f={};for(const k of ['quantity','yield','success','dex','luk','int','batchBase'])f[k]=$(k).value.trim()===''?NaN:Number($(k).value);f.mode=$('mode').value;return f;}
-function fillForm(){for(const k of Object.keys(state.form))if($(k))$(k).value=state.form[k];$('weightCurrent').value=state.weight?.current??'';$('weightMax').value=state.weight?.max??'';$('weightBowls').value=state.weight?.bowls??0;$('profitPercent').value=state.saleProfit??20;}
+function fillForm(){for(const k of Object.keys(state.form))if($(k))$(k).value=state.form[k];$('weightCurrent').value=state.weight?.current??'';$('weightMax').value=state.weight?.max??'';$('weightBowls').value=state.weight?.bowls??0;$('weightIncludesMaterials').checked=state.weight?state.weight.includesMaterials===true:true;renderWeightMaterials(true);$('profitPercent').value=state.saleProfit??20;}
 function baseRenderList(){const q=normal($('search').value),cat=$('category').value;const filtered=C.recipes.filter(r=>(cat==='all'||r.category===cat)&&normal(r.name+' '+Object.keys(r.ingredients).map(id=>C.materials[id].name).join(' ')+' '+(r.id==='antifire'?'Crista':'')).includes(q));$('recipeCount').textContent=C.recipes.length;$('recipeList').innerHTML=filtered.length?filtered.map(r=>`<button class="recipe-button ${r.id===state.selected?'active':''}" data-recipe="${r.id}" aria-pressed="${r.id===state.selected}"><span class="bottle-icon">${recipeIcon(r)}</span><span><span class="recipe-name">${esc(r.name)}</span><small>${r.verified?'● YggIdle':'◇ Receita padrão'} · ${Object.keys(r.ingredients).length} materiais</small></span><span class="pchip">${r.points===null?'—':r.points+' pt'+(r.points>1?'s':'')}</span></button>`).join(''):'<div class="empty">Nenhuma receita encontrada.</div>';}
 function baseSelectRecipe(id){const r=C.recipes.find(r=>r.id===id);if(!r)return;state.selected=id;state.form={...state.form,yield:r.advanced?C.batchYield(state.form.dex,state.form.luk,state.form.int,state.form.batchBase):1,success:100};fillForm();renderHeader();renderList();renderCalculation();save();setView('calculator');}
 function baseRenderHeader(){const r=selected();$('recipeTop').innerHTML=`<div class="bottle-icon">${recipeIcon(r)}</div><div style="flex:1"><div class="calchead"><div><div class="eyebrow">${esc(r.category)}</div><h2>${esc(r.name)}</h2></div></div><div class="tags"><span class="tag ${r.verified?'':'warn'}">${r.verified?'● Receita confirmada':'◇ Receita padrão a conferir'}</span><span class="tag gold">${r.points===null?'Pontuação não confirmada':r.points+' pontos / poção'}</span>${r.advanced?'<span class="tag">Lote avançado</span>':''}</div></div>`;$('advancedControls').classList.toggle('hidden',!r.advanced);$('yield').readOnly=r.advanced;$('recipeNote').innerHTML=`${esc(r.note||'Tenha o manual correspondente na mochila. Ingredientes e Vasilha seguem o preparo padrão; confirme na janela do jogo.')} <a href="${r.source}" target="_blank" rel="noopener noreferrer">Fonte da receita ↗</a>`;}
@@ -635,16 +655,21 @@ function basePriceOf(id){return C.unitPrice(id,false,state.prices);}
 function discountToggle(){return `<label class="discount-toggle"><input type="checkbox" data-discount ${state.discount?'checked':''}><span><strong>Usar Desconto do Mercador · 24%</strong><small>${state.discount?'Ativo: paga 76% do preço base da loja.':'Desmarcado: usa o preço normal da loja.'} Só se aplica a materiais vendidos no NPC.</small></span></label>`;}
 function shopLocation(m){return m.shop?m.shop.store+' → '+m.shop.tab:'Loja — Suprimentos → Alquimia';}
 function shopPrices(id){const p=priceOf(id),base=basePriceOf(id);return p===null?'Preço não informado':`${fmt(p)} z${state.discount&&C.materials[id].npc?` <s>${fmt(base)} z</s> <span class="shop-discount">−24%</span>`:''}`;}
-function purchaseList(totals=null,ids=null){
+function extensionTransferActions(scope){
+ let buttons='<button type="button" data-send-extension>Enviar para extensão</button>';
+ if(scope==='calculator'&&state.weight?.active){try{const b=calculatorWeightBatches();buttons=`<button type="button" data-send-extension="first" ${b.first.attempts?'':'disabled'}>Enviar 1º lote · usar mochila (${fmt(b.first.attempts)} preparos)</button><button type="button" data-send-extension="empty" ${b.empty.attempts?'':'disabled'}>Enviar próximos · sem materiais (${fmt(b.empty.attempts)} preparos)</button>`;}catch{return '';}}
+ return `<div class="actions extension-actions">${buttons}<a class="database-link" href="extension/">Baixar extensão Chrome ↗</a></div>`;
+}
+function purchaseList(totals=null,ids=null,scope=''){
  const keys=(ids||Object.keys(totals||{})).filter(id=>C.materials[id].npc).sort((a,b)=>shopLocation(C.materials[a]).localeCompare(shopLocation(C.materials[b]),'pt-BR')||C.materials[a].name.localeCompare(C.materials[b].name,'pt-BR'));
  if(!keys.length)return '';
  const cost=totals?C.purchaseSummary(Object.fromEntries(keys.filter(id=>totals[id]).map(id=>[id,totals[id]])),state.discount,state.prices):null;
- return `<section class="shop-panel"><div class="sectionline"><h3>Comprar antes de farmar</h3><span>${keys.length} materiais no NPC</span></div><p class="help">Estes ingredientes podem ser comprados na loja do jogo. Clique no item para ver a compra e as opções de drop.</p><div class="shop-items">${keys.map(id=>{const m=C.materials[id],row=totals?.[id];return `<div class="shop-item"><div>${materialButton(id)}<small class="shop-location">${esc(shopLocation(m))}</small></div><div class="shop-item-price">${row?`<strong>${copyNumber(row.missing)} un.</strong> × `:''}${shopPrices(id)}<small>${row?'a comprar × preço por unidade':'por unidade'}</small></div></div>`;}).join('')}</div>${totals?'<div class="actions extension-actions"><button type="button" data-send-extension>Enviar para extensão</button><a class="database-link" href="extension/">Baixar extensão Chrome ↗</a></div>':''}${cost?`<div class="shop-total"><span>Compra no NPC${cost.unknown?' · parcial':''}</span><strong>${fmt(cost.sum)} z</strong>${cost.saved>0?`<small>Economia com Desconto: ${fmt(cost.saved)} z</small>`:''}</div>`:''}</section>`;
+ return `<section class="shop-panel"><div class="sectionline"><h3>Comprar antes de farmar</h3><span>${keys.length} materiais no NPC</span></div><p class="help">Estes ingredientes podem ser comprados na loja do jogo. Clique no item para ver a compra e as opções de drop.</p><div class="shop-items">${keys.map(id=>{const m=C.materials[id],row=totals?.[id];return `<div class="shop-item"><div>${materialButton(id)}<small class="shop-location">${esc(shopLocation(m))}</small></div><div class="shop-item-price">${row?`<strong>${copyNumber(row.missing)} un.</strong> × `:''}${shopPrices(id)}<small>${row?'a comprar × preço por unidade':'por unidade'}</small></div></div>`;}).join('')}</div>${totals?extensionTransferActions(scope):''}${cost?`<div class="shop-total"><span>Compra no NPC${cost.unknown?' · parcial':''}</span><strong>${fmt(cost.sum)} z</strong>${cost.saved>0?`<small>Economia com Desconto: ${fmt(cost.saved)} z</small>`:''}</div>`:''}</section>`;
 }
 function renderShopCalculation(){
  $('purchaseSettings').innerHTML=discountToggle();
  const r=selected();$('shopProductBanner').innerHTML=r.shop?`<div class="notice shop-product">Este item pronto também é vendido: <strong>${fmt(C.discountedPrice(r.shop.price,state.discount))} z / unidade</strong>${state.discount?' com Desconto':''}.<br>${esc(r.shop.store)} → ${esc(r.shop.tab)}. Comprar o produto pronto não gera pontos de fabricação.</div>`:'';
- $('recipePurchases').innerHTML=current?purchaseList(C.aggregate([current],calculatorOwned())):'';
+ $('recipePurchases').innerHTML=current?purchaseList(C.aggregate([current],calculatorOwned()),null,'calculator'):'';
 }
 function materialShopPanel(id,need){const m=C.materials[id];return `<section class="shop-panel material-shop"><div class="eyebrow">Pode comprar antes de farmar</div><h3>Comprar no NPC</h3><p><strong>${esc(shopLocation(m))}</strong></p><div class="shop-modal-price">${shopPrices(id)} <small>/ unidade</small></div>${discountToggle()}<div class="field"><label for="dialogPrice">Preço base da loja por unidade, sem Desconto (zeny)</label><input id="dialogPrice" type="number" min="0" max="1000000000000" step="0.01" placeholder="Informe o preço base" value="${basePriceOf(id)??''}" data-dialogprice="${id}"></div><p id="dialogCost">${view==='farm'&&!activeGoal()?'Seleção de farm: preço por unidade; as quantidades são definidas na Calculadora.':priceOf(id)===null?'Preço não informado.':'Para as '+fmt(need.missing)+' unidades que faltam: '+fmt(need.missing*priceOf(id))+' zeny.'}</p><p class="help">${esc(m.shop?.source||'Venda informada na publicação de Alquimia')}. Preços das imagens tratados como base; o check aplica diretamente 24% de redução.</p></section>`;}
 function baseRefreshShopViews(){renderHeader();renderList();renderCalculation();renderPlan();if(view==='farm')renderRoute();}
@@ -663,7 +688,7 @@ ensureExtras();
 function isFavorite(id){return state.favorites?.includes(id);}
 function favoriteButton(id){const r=C.recipes.find(r=>r.id===id),on=isFavorite(id);return `<button class="favorite-button" data-favorite="${id}" aria-pressed="${!!on}" aria-label="${on?'Remover':'Adicionar'} ${esc(r.name)} ${on?'dos':'aos'} favoritos" title="${on?'Remover dos':'Adicionar aos'} favoritos">${on?'★':'☆'}</button>`;}
 function productionProfile(r){return C.profileFor(r,state.profiles?.[r.id]||{dex:state.form.dex,luk:state.form.luk,int:state.form.int,batchBase:state.form.batchBase});}
-function calculatorOwned(){return state.weight?.active&&Number.isInteger(state.weight.bowls)?{...state.owned,bowl:state.weight.bowls}:state.owned;}
+function calculatorOwned(){return state.weight?.active?{...state.weight.carried,bowl:state.weight.bowls??0}:state.owned;}
 function economicsOptions(forCalculator=false){return {owned:forCalculator?calculatorOwned():state.owned,discount:state.discount,prices:state.prices};}
 function money(cost){return `${fmt(cost.sum)} z${cost.unknown?' conhecidos':''}`;}
 function priceNote(cost){return cost.unknown?`${cost.unknown} material(is) sem preço`:'Custo completo';}
@@ -682,21 +707,32 @@ function renderCalculation(){
  $('quantityControls').classList.toggle('hidden',state.weight?.active===true);
  baseRenderCalculation();if(current){state.profiles??={};state.profiles[state.selected]=C.profileFor(selected(),state.form);save();}renderCraftExtras();renderWeightCapacity();
 }
+function renderWeightMaterials(force=false){
+ const box=$('weightMaterials');if(!box)return;
+ const focused=document.activeElement?.dataset.weightMaterial;
+ const ids=[...new Set([...Object.keys(selected().ingredients),...Object.entries(state.weight?.carried||{}).filter(([,n])=>n>0).map(([id])=>id),...(focused&&C.materials[focused]?[focused]:[])])].filter(id=>id!=='bowl').sort((a,b)=>C.materials[a].name.localeCompare(C.materials[b].name,'pt-BR'));
+ const key=ids.join(',');if(!force&&box.dataset.materials===key)return;box.dataset.materials=key;
+ box.innerHTML=ids.map(id=>`<div class="field"><label for="weightMaterial-${id}">${esc(C.materials[id].name)} na mochila</label><input id="weightMaterial-${id}" data-weight-material="${id}" type="number" min="0" max="1000000000" step="1" inputmode="numeric" value="${state.weight?.carried?.[id]??0}">${selected().ingredients[id]?'':'<small class="help">Material de outra receita: continua pesando até você retirá-lo.</small>'}</div>`).join('');
+}
+function readWeightInputs(){return {...state.weight,current:$('weightCurrent').value.trim()===''?null:Number($('weightCurrent').value),max:$('weightMax').value.trim()===''?null:Number($('weightMax').value),bowls:$('weightBowls').value.trim()===''?0:Number($('weightBowls').value),includesMaterials:$('weightIncludesMaterials').checked,carried:{...state.weight?.carried}};}
+function calculatorWeightBatches(){const r=selected(),profile=readForm();if(r.advanced)profile.yield=C.batchYield(profile.dex,profile.luk,profile.int,profile.batchBase);return C.weightBatches(r,profile,readWeightInputs());}
 function renderWeightCapacity(){
+ renderWeightMaterials();$('weightCurrentLabel').textContent=$('weightIncludesMaterials').checked?'Peso atual total do jogo':'Peso atual sem os materiais informados';
  const box=$('weightResult'),button=$('useWeightCapacity');button.disabled=true;
- const weight={current:$('weightCurrent').value.trim()===''?null:Number($('weightCurrent').value),max:$('weightMax').value.trim()===''?null:Number($('weightMax').value),bowls:$('weightBowls').value.trim()===''?0:Number($('weightBowls').value)};
+ const weight=readWeightInputs();
  if(weight.current===null||weight.max===null){box.innerHTML='<p class="help">Preencha os dois pesos para calcular o máximo por compra.</p>';return;}
  try{
-  const r=selected(),profile=readForm();if(r.advanced)profile.yield=C.batchYield(profile.dex,profile.luk,profile.int,profile.batchBase);
-  const info=C.weightCapacity(r,profile,weight);button.disabled=false;
-  box.innerHTML=`<p class="help">Limite para usar habilidades: <strong>${fmt(info.limit)}</strong> de peso (90% da capacidade).</p><div class="result-strip"><div class="metric"><label>Máximo por compra</label><strong>${fmt(info.attempts)}</strong><small>preparos · até ${fmt(info.items)} itens</small></div><div class="metric"><label>Com os ingredientes</label><strong>${fmt(info.purchaseWeight)}</strong><small>peso antes do craft</small></div><div class="metric"><label>Após fabricar tudo</label><strong>${fmt(info.finalWeight)}</strong><small>peso com todos os produtos</small></div></div><p class="help">Peso antes da compra: <strong>${fmt(info.startingWeight)}</strong>, incluindo <strong>${fmt(info.bowlWeight)}</strong> das vasilhas que já tem. Vasilhas a comprar: ${copyNumber(info.bowlsToBuy)} · sobram após o craft: ${copyNumber(info.bowlsRemaining)}.</p>${info.attempts===0?'<p class="notice warn">Não cabe um preparo completo até 90%. Libere peso antes de comprar este lote.</p>':current?.attempts>info.attempts?'<p class="notice warn">A quantidade selecionada excede o limite. Clique em Calcular pelo peso para ajustar a lista de materiais.</p>':''}${info.reference?'<p class="notice warn">Peso do produto baseado em referência bRO, ainda não confirmado na database do YggIdle. Confira no jogo antes da compra.</p>':''}<details><summary>Ver pesos usados por preparo</summary><div class="table-scroll"><table><thead><tr><th>Item</th><th class="num">Peso un.</th><th class="num">Peso no preparo</th></tr></thead><tbody>${Object.entries(r.ingredients).map(([id,n])=>`<tr><td>${fmt(n)}× ${materialButton(id)}</td><td class="num">${fmt(C.itemWeight(C.materials[id].id))}</td><td class="num">${fmt(n*C.itemWeight(C.materials[id].id))}</td></tr>`).join('')}<tr><td>${fmt(profile.yield)}× ${esc(r.name)} · produto</td><td class="num">${fmt(C.itemWeight(r.itemId))}</td><td class="num">${fmt(info.outputPerAttempt)}</td></tr></tbody></table></div></details>`;
+  const r=selected(),{first:info,empty}=calculatorWeightBatches();button.disabled=false;
+  box.innerHTML=`<p class="help">Limite para usar habilidades: <strong>${fmt(info.limit)}</strong> de peso (90% da capacidade).</p><h4>1º lote · usando a mochila</h4><div class="result-strip"><div class="metric"><label>Máximo por compra</label><strong>${fmt(info.attempts)}</strong><small>preparos · até ${fmt(info.items)} itens</small></div><div class="metric"><label>Com os ingredientes</label><strong>${fmt(info.purchaseWeight)}</strong><small>peso antes do craft</small></div><div class="metric"><label>Após fabricar tudo</label><strong>${fmt(info.finalWeight)}</strong><small>peso com produtos e sobras</small></div></div><p class="help">Peso antes da compra: <strong>${fmt(info.startingWeight)}</strong>, incluindo <strong>${fmt(info.carriedWeight)}</strong> dos materiais informados. Peso dos demais itens: <strong>${fmt(info.baseWeight)}</strong>. Vasilhas a comprar: ${copyNumber(info.bowlsToBuy)} · sobram após o craft: ${copyNumber(info.bowlsRemaining)}.</p><h4>Próximos lotes · sem os materiais informados</h4><p class="help"><strong>${fmt(empty.attempts)} preparos</strong> · até ${fmt(empty.items)} itens. Começa com ${fmt(empty.startingWeight)} de peso dos demais itens; chega a ${fmt(empty.purchaseWeight)} antes do craft e ${fmt(empty.finalWeight)} ao terminar. Retire produtos e sobras do lote anterior para usar esta lista.</p>${info.attempts===0?'<p class="notice warn">Não cabe um preparo completo até 90%. Libere peso antes de comprar o primeiro lote.</p>':current?.attempts>info.attempts?'<p class="notice warn">A quantidade selecionada excede o limite. Clique em Calcular pelo peso para ajustar.</p>':''}${info.reference?'<p class="notice warn">Peso do produto baseado em referência bRO, ainda não confirmado na database do YggIdle. Confira no jogo antes da compra.</p>':''}<details><summary>Ver materiais e pesos do primeiro lote</summary><div class="table-scroll"><table><thead><tr><th>Material</th><th class="num">Na mochila</th><th class="num">Comprar</th><th class="num">Sobra</th></tr></thead><tbody>${Object.keys(r.ingredients).map(id=>`<tr><td>${materialButton(id)}</td><td class="num">${copyNumber(info.owned[id]||0)}</td><td class="num">${copyNumber(info.toBuy[id])}</td><td class="num">${copyNumber(info.remaining[id]||0)}</td></tr>`).join('')}</tbody></table></div></details>`;
  }catch(e){box.innerHTML=`<p class="error" role="alert">${esc(e.message)}</p>`;}
 }
-for(const id of ['weightCurrent','weightMax','weightBowls'])$(id).addEventListener('input',()=>{
- state.weight={...state.weight,current:$('weightCurrent').value.trim()===''?null:Number($('weightCurrent').value),max:$('weightMax').value.trim()===''?null:Number($('weightMax').value),bowls:$('weightBowls').value.trim()===''?0:Number($('weightBowls').value)};
- if(state.weight.current===null||state.weight.max===null||!validNumber(state.weight.bowls,0,1e9,true))state.weight.active=false;
+function updateWeightInputs(){
+ state.weight=readWeightInputs();
+ if(state.weight.current===null||state.weight.max===null)state.weight.active=false;
  save();renderCalculation();
-});
+}
+for(const id of ['weightCurrent','weightMax','weightBowls','weightIncludesMaterials'])$(id).addEventListener('input',updateWeightInputs);
+document.addEventListener('input',e=>{const id=e.target.dataset.weightMaterial;if(!id||!C.materials[id])return;state.weight??={};state.weight.carried??={};state.weight.carried[id]=e.target.value.trim()===''?0:Number(e.target.value);updateWeightInputs();});
 $('useWeightCapacity').addEventListener('click',()=>{
  state.weight={...state.weight,active:true};renderCalculation();
 });
@@ -906,6 +942,6 @@ fillForm();renderHeader();renderList();renderCalculation();renderPlan();
 })();
 
 </script>
-<script src="extension-bridge.js"></script>
+<script src="extension-bridge.js?v=20261030-batches"></script>
 </body>
 </html>

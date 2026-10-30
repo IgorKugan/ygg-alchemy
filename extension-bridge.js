@@ -21,15 +21,22 @@
     if (pending) { toast('Aguarde o envio da lista atual.'); return; }
     try {
       const isPlan = !!button.closest('#shopping');
-      const calculations = isPlan ? getPlanCalcs() : current ? [current] : [];
+      const batch=button.dataset.sendExtension;
+      let calculations,owned,label;
+      if(!isPlan&&['first','empty'].includes(batch)){
+        const info=calculatorWeightBatches()[batch];
+        if(!info.attempts){toast('Não cabe um preparo neste lote. Confira o peso e os materiais.');return;}
+        calculations=[CraftCore.calculate(selected(),{...state.form,quantity:info.attempts,mode:'attempts'})];owned=info.owned;
+        label=selected().name+' · '+(batch==='first'?'1º lote · usar mochila':'Próximos lotes · sem materiais')+' · '+info.attempts+' preparos';
+      }else{calculations=isPlan?getPlanCalcs():current?[current]:[];owned=isPlan?state.owned:calculatorOwned();label=isPlan?'Meu plano · '+calculations.length+' receitas':selected().name;}
       if (!calculations.length) { toast('Informe uma receita válida para enviar.'); return; }
-      const totals = CraftCore.aggregate(calculations, isPlan ? state.owned : calculatorOwned());
+      const totals = CraftCore.aggregate(calculations, owned);
       const items = CraftCore.npcShoppingList(totals);
       if (!items.length) { toast('Seu estoque já cobre os materiais vendidos no NPC.'); return; }
       const id = crypto.randomUUID();
       pending = { id, button, timer: setTimeout(() => finish('Extensão não encontrada. Instale em “Baixar extensão Chrome” e recarregue a calculadora.'), 1500) };
       button.disabled = true;
-      window.postMessage({ channel, type: 'SEND_LIST', requestId: id, label: isPlan ? 'Meu plano · ' + calculations.length + ' receitas' : selected().name, items }, location.origin);
+      window.postMessage({ channel, type: 'SEND_LIST', requestId: id, label, items }, location.origin);
     } catch (error) { if (pending) finish('Não foi possível enviar: ' + error.message); else toast('Não foi possível enviar: ' + error.message); }
   });
 })();
