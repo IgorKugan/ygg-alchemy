@@ -24,6 +24,12 @@ Sete produtos ainda usam os pesos de referência bRO já presentes no projeto: P
 
 Para rodar os testes de cálculo com Node.js: `node --test`.
 
+## Elixires
+
+Elixir Vermelho e Elixir Azul estão no catálogo de Farmacologia, com rendimento e chance de sucesso editáveis como as demais receitas dessa categoria. Por preparo, ambos usam 10 Garrafas Vazias, 5 Garrafas de Poção e 1 Vasilha de Mistura, mantendo a regra de vasilha da calculadora. O Vermelho usa 15 Xaropes Vermelhos, conforme a receita padrão do bROWiki; o Azul usa 6 Xaropes Azuis, conforme o [ajuste publicado pelo YggIdle](https://yggidle.com.br/atualizacoes/manuais-de-alquimia).
+
+Os elixires usam os ícones, pesos e preços de loja já cadastrados, participam do plano e do estoque e são preservados ao importar planejamentos. O Elixir Dourado continua fora do catálogo.
+
 ## Preço de venda
 
 Após o custo da receita, **Por quanto vender?** mostra o preço mínimo estimado por item, o preço com lucro desejado e o lucro estimado do lote. **Lucro sobre o custo (%)** começa em 20%, pode ser alterado e é salvo junto ao planejamento. Um custo de 100 z com 20% resulta em preço de 120 z; 0% cobre apenas os materiais.

@@ -88,7 +88,7 @@ test('recusa capacidade ausente, entradas inválidas e peso atual acima da capac
 });
 
 test('todas as receitas têm pesos e o maior lote não supera o limite', () => {
-  assert.equal(core.recipes.length, 35);
+  assert.equal(core.recipes.length, 37);
   for (const r of core.recipes) {
     for (const yieldValue of [1, 300]) {
       const result = capacity(r.id, undefined, { yield: yieldValue });
