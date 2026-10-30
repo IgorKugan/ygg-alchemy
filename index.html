@@ -542,7 +542,7 @@ globalThis.CraftCore={calculate,aggregate,batchYield,recipes,materials,buildFarm
 </script>
 <script>
 'use strict';
-const C=globalThis.CraftCore,$=id=>document.getElementById(id),nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}),fmt=C.formatNumber,raw=C.rawNumber,copyNumber=C.copyNumber,esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),normal=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const C=globalThis.CraftCore,$=id=>document.getElementById(id),nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}),fmt=C.formatNumber,raw=C.rawNumber,esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),normal=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const flask='<svg viewBox="0 0 28 36" fill="none" aria-hidden="true"><path d="M9 3h10M10 3v10L4 25q-3 8 4 8h12q7 0 4-8l-6-12V3" stroke="currentColor" stroke-width="1.5"/><path d="M7 23h14l3 6q1 2-4 2H8q-5 0-4-2Z" fill="currentColor" opacity=".65"/><circle cx="13" cy="18" r="1.5" fill="currentColor"/><circle cx="17" cy="26" r="1" fill="#fff" opacity=".7"/></svg>';
 const storageKey='ygg-alchemy-v1';let state={selected:'cellular',form:{quantity:100,mode:'items',yield:1,success:100,dex:120,luk:120,int:120,batchBase:50},plan:[],owned:{},prices:{},discount:false};let view='calculator',current=null,focusBeforeDialog=null,toastTimer;
 function validNumber(x,min,max,integer=false){return typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max&&(!integer||Number.isInteger(x));}

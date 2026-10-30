@@ -1,5 +1,5 @@
 const { readFileSync } = require('node:fs');
-const { runInNewContext } = require('node:vm');
+const { runInNewContext, Script } = require('node:vm');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
@@ -7,6 +7,11 @@ const html = readFileSync(require('node:path').join(__dirname, '../index.html'),
 const context = {};
 runInNewContext(html.match(/<script id="engine">([\s\S]*?)<\/script>/)[1], context);
 const core = context.CraftCore;
+
+test('todos os scripts compartilham o escopo global sem declarações duplicadas', () => {
+  const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(match => match[1]);
+  assert.doesNotThrow(() => new Script(scripts.join('\n;\n')));
+});
 
 test('abrevia resumos com k e kk sem alterar valores pequenos ou negativos', () => {
   for (const [number, expected] of [
