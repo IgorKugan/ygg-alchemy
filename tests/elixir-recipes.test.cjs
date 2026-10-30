@@ -19,9 +19,10 @@ test('planeja os dois elixires juntos e desconta o estoque compartilhado', () =>
   const blue = core.calculate(recipe('blueelixir'), form);
   assert.equal(red.expectedOutput, 30);
   assert.equal(blue.expectedOutput, 30);
-  const totals = core.aggregate([red, blue], { bottle: 20, potionbottle: 5, redsyrup: 10 });
-  assert.equal(totals.bottle.required, 60);
-  assert.equal(totals.bottle.missing, 40);
+  const totals = core.aggregate([red, blue], { tube: 20, potionbottle: 5, redsyrup: 10 });
+  assert.equal(totals.tube?.required, 60);
+  assert.equal(totals.tube?.missing, 40);
+  assert.equal(totals.bottle, undefined);
   assert.equal(totals.potionbottle.missing, 25);
   assert.equal(totals.redsyrup.missing, 35);
   assert.equal(totals.bluesyrup.missing, 18);
@@ -30,8 +31,8 @@ test('planeja os dois elixires juntos e desconta o estoque compartilhado', () =>
 
 test('inclui os xaropes corretos no custo e no limite de peso dos elixires', () => {
   for (const [id, cost, ingredientWeight, attempts] of [
-    ['redelixir', 42006, 131, 6],
-    ['blueelixir', 63156, 86, 9],
+    ['redelixir', 25206, 121, 6],
+    ['blueelixir', 46356, 76, 10],
   ]) {
     const r = recipe(id);
     assert.equal(core.craftEconomics(r, form).full.sum, cost);
