@@ -1,0 +1,6 @@
+{
+  "name": "ygg-alchemy",
+  "private": true,
+  "scripts": { "test": "node --test", "package:extension": "python3 scripts/package-extension.py" },
+  "devDependencies": { "jsdom": "26.1.0" }
+}

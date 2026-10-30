@@ -49,3 +49,15 @@ Campos de edição, valores salvos e quantidades nas listas exportadas continuam
 ## Dados salvos
 
 Plano, estoque, preços, favoritos e preferências ficam no armazenamento local de cada navegador e endereço. Não são sincronizados entre dispositivos. Para levar um planejamento do arquivo local ou de outro endereço, use **Meu plano → Exportar plano .json** e depois **Importar plano** no site publicado.
+
+## Extensão Chrome — compras no YggIdle
+
+Download e instalação: https://igorkugan.github.io/ygg-alchemy/extension/
+
+Na lista de compras da receita ou do plano, **Enviar para extensão** transfere os materiais NPC e suas quantidades faltantes, descontando estoque e vasilhas conforme o cálculo atual. A extensão Manifest V3 guarda a lista localmente e preenche campos HTML reconhecidos na loja de suprimentos por nome. Ela não confirma compras e mantém os outros itens do carrinho.
+
+Instalação manual: extrair o ZIP, abrir `chrome://extensions`, ativar Modo do desenvolvedor, usar **Carregar sem compactação** na pasta com `manifest.json` e recarregar a calculadora/jogo. No popup é possível pausar, reaplicar explicitamente ou concluir/limpar a lista. Cada envio cria um novo lote; o progresso persiste e um lote fica vinculado à primeira aba/frame que reconheceu a loja.
+
+Fontes da extensão em `chrome-extension/`, página de instalação em `extension/` e pacote versionado em `downloads/`. Recrie o ZIP com `python3 scripts/package-extension.py`. Não há dependências de execução ou serviços externos na extensão. Testes DOM usam jsdom: `npm ci && npm test`.
+
+**Limitação de validação:** o navegador remoto de teste não inicia o cliente por ausência de WebGL2. O transporte, o preenchimento e o ciclo da lista foram validados com uma loja de exemplo; a compatibilidade com a loja real precisa ser conferida no Chrome do usuário.

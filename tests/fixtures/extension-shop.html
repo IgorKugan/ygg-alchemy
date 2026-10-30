@@ -1,0 +1,15 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Loja de teste — Ygg Alchemy</title><body>
+<input id="unrelated" type="number" value="77" aria-label="Outro campo">
+<section id="shop"><h1>Loja — Suprimentos</h1><div class="columns"><section><h2>PRODUTOS</h2>
+<div class="product"><div><span>Garrafa de Poção</span><small>6z</small></div><input type="number" value="0" min="0" id="potion"></div>
+<div class="product"><div><span>Tubo de Ensaio</span><small>30z</small></div><input type="number" value="0" min="0" id="tube"></div>
+<div class="product"><div><span>Xarope Vermelho</span><small>402z</small></div><input type="number" value="0" min="0" id="red"></div>
+<div class="product"><div><span>Xarope Azul</span><small>1900z</small></div><input type="number" value="0" min="0" id="blue"></div>
+<div class="product"><span>ÁLCOOL</span><input type="text" inputmode="numeric" value="0" id="alcohol"></div>
+<div class="product" hidden><span>Tubo de Ensaio</span><input type="number" value="9" id="hiddenTube"></div>
+</section><section><h2>SUA COMPRA</h2><p id="cart">Nenhum item selecionado.</p><button id="buy" type="button">Confirmar compra</button></section></div></section>
+<script>
+window.events=[];window.purchases=0;
+document.querySelectorAll('#shop input').forEach(input=>{for(const type of ['input','change'])input.addEventListener(type,()=>{events.push(input.id+':'+type);document.getElementById('cart').textContent=[...document.querySelectorAll('#shop input')].filter(e=>!e.closest('[hidden]')&&Number(e.value)>0).map(e=>e.id+': '+e.value).join(' | ');});});
+document.getElementById('buy').addEventListener('click',()=>{window.purchases++;});
+</script></body></html>

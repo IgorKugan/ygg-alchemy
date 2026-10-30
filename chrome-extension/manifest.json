@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Ygg Alchemy — Compras",
+  "description": "Recebe a lista da calculadora e preenche os materiais na loja do YggIdle. Você confirma a compra.",
+  "version": "1.0.0",
+  "permissions": ["storage"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Ygg Alchemy — Compras", "default_popup": "popup.html" },
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "content_scripts": [
+    { "matches": ["https://igorkugan.github.io/ygg-alchemy/*"], "js": ["shared.js", "calculator.js"], "run_at": "document_idle" },
+    { "matches": ["https://jogo.yggidle.com.br/*"], "js": ["shared.js", "shop-adapter.js", "shop.js"], "all_frames": true, "run_at": "document_idle" }
+  ]
+}
