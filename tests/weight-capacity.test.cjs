@@ -98,3 +98,84 @@ test('todas as receitas têm pesos e o maior lote não supera o limite', () => {
     }
   }
 });
+
+test('soma as vasilhas existentes e mantém o peso das extras após fabricar', () => {
+  const result = capacity('cellular', { current: 100, max: 1000, bowls: 100 });
+  assert.equal(result.attempts, 5);
+  assert.equal(result.bowlWeight, 100);
+  assert.equal(result.startingWeight, 200);
+  assert.equal(result.bowlsToBuy, 0);
+  assert.equal(result.bowlsRemaining, 95);
+  assert.equal(result.purchaseWeight, 900);
+  assert.equal(result.finalWeight, 220);
+});
+
+test('compra só as vasilhas que faltam sem duplicar o peso das que já tem', () => {
+  const result = capacity('cellular', { current: 100, max: 1000, bowls: 3 });
+  assert.equal(result.attempts, 5);
+  assert.equal(result.bowlsToBuy, 2);
+  assert.equal(result.bowlsRemaining, 0);
+  assert.equal(result.purchaseWeight, 805);
+  assert.equal(result.finalWeight, 125);
+});
+
+test('as vasilhas extras limitam o lote também quando o produto é o mais pesado', () => {
+  const result = capacity('spore', { current: 100, max: 1000, bowls: 500 }, { yield: 300 });
+  assert.equal(result.attempts, 10);
+  assert.equal(result.finalWeight, 890);
+  assert.equal(result.bowlsRemaining, 490);
+  assert.equal(capacity('cellular', { current: 100, max: 1000, bowls: 801 }).attempts, 0);
+});
+
+test('recusa quantidade de vasilhas negativa, fracionária ou inválida', () => {
+  for (const bowls of [-1, 0.5, NaN, Infinity, '3', 1000000001]) {
+    assert.throws(() => capacity('cellular', { current: 100, max: 1000, bowls }), /vasilhas/i);
+  }
+});
+
+test('mantém todos os estágios do craft até 90% e encontra o maior lote com vasilhas', () => {
+  for (const r of core.recipes) for (const bowls of [0, 3, 100, 500]) {
+    const result = capacity(r.id, { current: 100, max: 1000, bowls }, { yield: 300 });
+    const purchase = n => 100 + bowls + n * (result.ingredientsPerAttempt - 1) + Math.max(0, n - bowls);
+    const final = n => purchase(n) + n * (result.outputPerAttempt - result.ingredientsPerAttempt);
+    assert.ok(purchase(result.attempts) <= 900, r.id);
+    assert.ok(final(result.attempts) <= 900, r.id);
+    assert.ok(purchase(result.attempts + 1) > 900 || final(result.attempts + 1) > 900, r.id);
+  }
+});
+
+test('salva a quantidade de vasilhas e abre planos antigos com zero nesse campo', () => {
+  const elements = new Map();
+  const ui = { C: core, state: { form: { quantity: 1, mode: 'attempts', yield: 1, success: 100 } },
+    $: id => { if (!elements.has(id)) elements.set(id, {}); return elements.get(id); } };
+  for (const name of ['validNumber', 'cleanSnapshot', 'sanitize', 'fillForm']) {
+    runInNewContext(html.split('\n').find(line => line.startsWith(`function ${name}(`)), ui);
+  }
+  const data = { version: 1, plan: [], weight: { current: 100, max: 1000, bowls: 100, active: true } };
+  ui.state = ui.sanitize(JSON.parse(JSON.stringify(data)));
+  ui.fillForm();
+  assert.equal(ui.$('weightBowls').value, 100);
+  assert.equal(ui.state.weight.active, true);
+  delete data.weight.bowls;
+  assert.equal(ui.sanitize(data).weight.bowls, 0);
+});
+
+test('usa as vasilhas do personagem na compra sem alterar o estoque salvo', () => {
+  const ui = { state: { weight: { active: true, bowls: 3 }, owned: { bowl: 1000 } } };
+  runInNewContext(html.split('\n').find(line => line.startsWith('function calculatorOwned(')), ui);
+  const calc = core.calculate(recipe('cellular'), { quantity: 5, mode: 'attempts', yield: 1, success: 100 });
+  assert.equal(core.aggregate([calc], ui.calculatorOwned()).bowl.missing, 2);
+  assert.equal(ui.state.owned.bowl, 1000);
+  ui.state.weight.active = false;
+  assert.equal(core.aggregate([calc], ui.calculatorOwned()).bowl.missing, 0);
+});
+
+test('recalcula o custo da calculadora com as vasilhas carregadas mesmo em outra aba', () => {
+  const ui = { view: 'inventory', state: { weight: { active: true, bowls: 3 }, owned: { bowl: 1000 }, prices: {}, discount: false } };
+  for (const name of ['calculatorOwned', 'economicsOptions']) {
+    runInNewContext(html.split('\n').find(line => line.startsWith(`function ${name}(`)), ui);
+  }
+  const form = { quantity: 5, mode: 'attempts', yield: 1, success: 100 };
+  assert.equal(core.craftEconomics(recipe('cellular'), form, ui.economicsOptions(true)).remaining.sum, 62024);
+  assert.equal(core.craftEconomics(recipe('cellular'), form, ui.economicsOptions()).remaining.sum, 62000);
+});

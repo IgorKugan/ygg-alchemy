@@ -12,9 +12,9 @@ As fórmulas de fabricação do arquivo original foram preservadas. Todas as rec
 
 ## Limite de peso
 
-Na Calculadora, informe **Peso atual antes da compra** e **Capacidade máxima de peso** e clique em **Calcular pelo peso**. A quantidade manual fica oculta, e o máximo por compra é aplicado automaticamente à lista de materiais e à produção esperada. Alterar peso, receita, rendimento ou chance de sucesso atualiza os resultados. Para voltar à quantidade manual, limpe um dos campos de peso.
+Na Calculadora, informe **Peso atual sem as vasilhas**, **Capacidade máxima de peso** e **Vasilhas que já tenho no inventário**, e clique em **Calcular pelo peso**. O peso das vasilhas é somado automaticamente: se o peso informado veio do total do jogo, desconte as vasilhas antes de preenchê-lo. A quantidade manual fica oculta, e o máximo por compra é aplicado automaticamente à lista de materiais e à produção esperada. Alterar peso, vasilhas, receita, rendimento ou chance de sucesso atualiza os resultados. Para voltar à quantidade manual, limpe um dos campos de peso.
 
-O máximo por compra considera todos os ingredientes de um lote novo e os produtos que se acumulam durante o craft, mantendo o personagem até 90% da capacidade. Não desconta o estoque salvo, pois ele pode estar no armazém. Abrir uma meta específica de estoque ou comparação na calculadora volta ao modo manual para preservar a quantidade daquela meta.
+O máximo por compra considera todos os ingredientes de um lote novo e os produtos que se acumulam durante o craft, mantendo o personagem até 90% da capacidade. Usa primeiro as vasilhas informadas, compra somente as faltantes e mantém o peso das extras que sobram ao final. O resultado mostra o peso das vasilhas, quantas comprar e quantas sobram. O estoque salvo dos demais ingredientes não reduz o peso reservado, pois pode estar no armazém. No modo de peso, a compra e o custo restante da receita usam as vasilhas desse campo, sem alterar Meu estoque. Abrir uma meta específica de estoque ou comparação na calculadora volta ao modo manual para preservar a quantidade daquela meta.
 
 Use o rendimento real do personagem. O cálculo reserva espaço para todos os preparos bem-sucedidos, mesmo com chance configurada abaixo de 100%. Os campos de peso são salvos junto ao planejamento; arquivos antigos continuam compatíveis.
 
