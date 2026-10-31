@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'chrome-extension'
 manifest = json.loads((SOURCE / 'manifest.json').read_text())
 files = ['manifest.json', 'shared.js', 'background.js', 'calculator.js', 'shop-adapter.js', 'shop.js', 'popup.html', 'popup.js', 'popup.css', 'README.txt']
-files += ['autocraft-core.js', 'autocraft-dom.js', 'autocraft-content.js', 'autocraft-background.js', 'autocraft-popup.js']
 files += [f'icons/{size}.png' for size in (16, 48, 128)]
 target = ROOT / 'downloads' / f'ygg-alchemy-extension-{manifest["version"]}.zip'
 target.parent.mkdir(exist_ok=True)

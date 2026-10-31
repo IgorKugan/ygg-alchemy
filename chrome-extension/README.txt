@@ -1,4 +1,4 @@
-Ygg Alchemy — Compras e Autocraft 1.2.0
+Ygg Alchemy — Compras 1.2.1
 
 INSTALAR
 1. Extraia o ZIP em uma pasta permanente.
@@ -24,16 +24,9 @@ O manifest.json agora vem diretamente na raiz do ZIP, sem uma pasta interna extr
 AJUDA
 https://igorkugan.github.io/ygg-alchemy/extension/
 
-Permissões: armazenamento local, acesso ao domínio do jogo e depuração para simular teclado/mouse no Autocraft.
+Permissões: armazenamento local e content scripts apenas na calculadora e no jogo.
 Não lê o clipboard nem credenciais. Não confirma compras nem usa APIs internas do jogo.
 
-AUTOCRAFT
-Feche a loja e deixe a skill de fabricação na barra.
-Na aba do jogo, abra o popup da extensão. Configure a tecla (padrão 1) e a receita exata.
-Nome vazio seleciona o primeiro item. Ajuste os tempos e limite opcional em Tempos e limite.
-Clique em Iniciar. Feche o popup para acompanhar o jogo. Mantenha a aba ativa.
-Use Parar ou Esc para interromper. Trocar de aba, recarregar ou 3 tentativas sem janela também param.
-Ciclos são tentativas concluídas, não itens garantidos. A chance de fabricação continua sendo a do jogo.
-A permissão de depuração permite teclado e mouse; o Chrome mostra uma barra durante o uso.
-Pare o Macro Maker ou DevTools conectado antes de iniciar. A extensão não retoma após reload.
-Testado com interfaces de referência e comandos simulados; confirme a compatibilidade na sua instalação do jogo.
+VERSÃO 1.2.1
+Autocraft removido. Esta versão mantém a lista e o preenchimento manual da loja.
+A permissão de depuração não é mais necessária. Substitua os arquivos, recarregue a extensão e depois recarregue a calculadora e o jogo.

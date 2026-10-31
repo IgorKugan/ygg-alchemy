@@ -27,7 +27,7 @@ test('valida inteiros positivos, nomes e IDs únicos antes de guardar lista',()=
 async function worker(){
  let listener;const data={};const c={URL,crypto:require('node:crypto').webcrypto,console,Date,
  chrome:{runtime:{id:'test-extension',getURL:path=>'chrome-extension://test-extension/'+path,onMessage:{addListener:fn=>listener=fn}},storage:{local:{get:async key=>({[key]:structuredClone(data[key])}),set:async value=>Object.assign(data,structuredClone(value))}}}};
- c.importScripts=(...paths)=>paths.forEach(p=>runInNewContext(readFileSync(join(root,'chrome-extension',p),'utf8'),c));
+ c.importScripts=()=>runInNewContext(readFileSync(join(root,'chrome-extension/shared.js'),'utf8'),c);
  runInNewContext(readFileSync(join(root,'chrome-extension/background.js'),'utf8'),c);
  return {data,send:(message,sender)=>new Promise(resolve=>listener(message,sender,resolve))};
 }

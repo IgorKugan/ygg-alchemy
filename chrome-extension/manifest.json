@@ -1,17 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "Ygg Alchemy — Compras e Autocraft",
-  "description": "Lista de compras da calculadora e fabricação repetida com tecla configurável e controles Iniciar/Parar.",
-  "version": "1.2.0",
+  "name": "Ygg Alchemy — Compras",
+  "description": "Recebe a lista da calculadora e preenche os materiais no YggIdle quando você clicar em Preencher loja.",
+  "version": "1.2.1",
   "permissions": [
-    "storage",
-    "debugger"
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Ygg Alchemy — Compras e Autocraft",
+    "default_title": "Ygg Alchemy — Compras",
     "default_popup": "popup.html"
   },
   "icons": {
@@ -37,17 +36,10 @@
       "js": [
         "shared.js",
         "shop-adapter.js",
-        "shop.js",
-        "autocraft-core.js",
-        "autocraft-dom.js",
-        "autocraft-content.js"
+        "shop.js"
       ],
       "all_frames": true,
       "run_at": "document_idle"
     }
-  ],
-  "minimum_chrome_version": "118",
-  "host_permissions": [
-    "https://jogo.yggidle.com.br/*"
   ]
 }

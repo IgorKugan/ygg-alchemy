@@ -1,7 +1,6 @@
 'use strict';
-importScripts('shared.js', 'autocraft-core.js', 'autocraft-background.js');
+importScripts('shared.js');
 (() => {
-  const autoBackend = createYggAutoBackend(chrome);
   const { validateItems } = globalThis.YggShopping;
   const isCalculator = sender => {
     try { const url = new URL(sender.url); return url.origin === 'https://igorkugan.github.io' && url.pathname.startsWith('/ygg-alchemy/') && sender.tab?.id !== undefined; } catch { return false; }
@@ -13,7 +12,6 @@ importScripts('shared.js', 'autocraft-core.js', 'autocraft-background.js');
   const owns = (state, sender) => state.owner?.tabId === sender.tab?.id && state.owner?.frameId === sender.frameId;
   async function handle(message, sender) {
     if (!message || typeof message.type !== 'string') throw Error('Mensagem inválida.');
-    if (message.type.startsWith('AUTO_')) return autoBackend.handle(message, sender);
     const { shopping = null } = await chrome.storage.local.get('shopping');
     if (message.type === 'SAVE_LIST') {
       if (!isCalculator(sender)) throw Error('Origem não autorizada.');
@@ -26,8 +24,6 @@ importScripts('shared.js', 'autocraft-core.js', 'autocraft-background.js');
     if (['CLEAR_LIST', 'FILL_REQUEST'].includes(message.type)) {
       if (!isPopup(sender)) throw Error('Origem não autorizada.');
       if (message.type === 'CLEAR_LIST') { await chrome.storage.local.set({ shopping: null }); return { ok: true }; }
-      const { autocraft } = await chrome.storage.local.get('autocraft');
-      if (autocraft?.running) throw Error('Pare o Autocraft antes de preencher a loja.');
       if (!shopping) throw Error('Envie uma lista pela calculadora.');
       if (!Number.isSafeInteger(message.tabId) || message.tabId < 0) throw Error('Abra a extensão na aba do jogo.');
       shopping.request = { id: crypto.randomUUID(), tabId: message.tabId, createdAt: Date.now(), status: 'pending' };
@@ -57,7 +53,6 @@ importScripts('shared.js', 'autocraft-core.js', 'autocraft-background.js');
   // Serialize claims and updates from multiple game tabs/frames.
   let queue = Promise.resolve();
   chrome.runtime.onMessage.addListener((message, sender, respond) => {
-    if (message?.type === 'AUTO_STOP') autoBackend.cancel(message, sender);
     queue = queue.then(() => handle(message, sender)).then(respond, error => respond({ ok: false, error: error.message }));
     return true;
   });
